@@ -1,0 +1,1 @@
+54125c526c06bc4a72e5cc8aa914df51c2f42f0bf454def2ec3227fa7111f1e3  Astra-1.0.0-arm64-v8a.apk
