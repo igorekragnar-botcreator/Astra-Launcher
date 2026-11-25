@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Astra Launcher mark: an astral spark with a tilted orbit. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:rotation="-18">
+        <path
+            android:fillColor="#00000000"
+            android:pathData="M54,38 C70,38 84,45 84,54 C84,63 70,70 54,70 C38,70 24,63 24,54 C24,45 38,38 54,38 Z"
+            android:strokeColor="#66C4BFFF"
+            android:strokeWidth="1.4" />
+    </group>
+
+    <path android:pathData="M54,20 C56.5,42 66,51.5 88,54 C66,56.5 56.5,66 54,88 C51.5,66 42,56.5 20,54 C42,51.5 51.5,42 54,20 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:endX="82"
+                android:endY="82"
+                android:startX="26"
+                android:startY="26"
+                android:type="linear">
+                <item
+                    android:color="#FFE6E1FF"
+                    android:offset="0" />
+                <item
+                    android:color="#FFC4BFFF"
+                    android:offset="0.42" />
+                <item
+                    android:color="#FF7C6CFF"
+                    android:offset="0.74" />
+                <item
+                    android:color="#FF22D3EE"
+                    android:offset="1" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <path
+        android:fillColor="#FF83D6D6"
+        android:pathData="M77,25 L78.7,29.3 L83,31 L78.7,32.7 L77,37 L75.3,32.7 L71,31 L75.3,29.3 Z" />
+    <path
+        android:fillColor="#FFFFB0D0"
+        android:pathData="M31,70 L32.3,73.7 L36,75 L32.3,76.3 L31,80 L29.7,76.3 L26,75 L29.7,73.7 Z" />
+</vector>
