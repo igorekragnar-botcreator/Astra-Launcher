@@ -15,12 +15,12 @@ import {
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
-const REPO = "https://github.com/astra-launcher/astra";
+const REPO = "https://github.com/igorekragnar-botcreator/Astra-Launcher";
 const RELEASES = `${REPO}/releases`;
-const APPIMAGE_SHA256 =
-  "bc6a05ccb3bf620869c8033b7215da52033c599fdd722e1de9b8d921cfdd01f3";
-const LINUX_RUN =
-  "curl -LO https://github.com/astra-launcher/astra/releases/download/v1.0.0/Astra-1.0.0-x86_64.AppImage && chmod +x Astra-1.0.0-x86_64.AppImage && ./Astra-1.0.0-x86_64.AppImage";
+const VERSION = "1.0.0";
+const TAG = `v${VERSION}`;
+const ASSET = (name: string) => `${RELEASES}/download/${TAG}/${name}`;
+const CLONE = `git clone ${REPO}.git`;
 
 function Mark({ size = 28 }: { size?: number }) {
   return (
@@ -159,7 +159,7 @@ function CopyChip({ command }: { command: string }) {
       <button
         type="button"
         onClick={copy}
-        aria-label="Copy the Linux install command"
+        aria-label="Copy the source clone command"
         className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-white/[0.1] px-2.5 py-1.5 text-[12px] text-zinc-300 transition-colors hover:border-white/25 hover:text-white active:scale-[0.98]"
       >
         {state === "copied" ? (
@@ -353,7 +353,7 @@ function App() {
               </h1>
               <p className="mt-6 max-w-md text-[15px] leading-relaxed text-zinc-300/90 md:text-base">
                 Astra installs the game from Mojang's own servers and launches
-                it on Android and Linux. No account wall for offline play.
+                it on Android. No account wall for offline play.
               </p>
               <div className="mt-8 flex flex-wrap items-center gap-3">
                 <a
@@ -370,7 +370,7 @@ function App() {
                   How it works
                 </a>
               </div>
-              <CopyChip command={LINUX_RUN} />
+              <CopyChip command={CLONE} />
             </motion.div>
           </div>
 
@@ -635,45 +635,46 @@ function App() {
                 </p>
                 <div className="mt-6 flex flex-wrap gap-3">
                   <a
-                    href="/dl/Astra-1.0.0.apk"
+                    href={ASSET(`Astra-${VERSION}-arm64-v8a.apk`)}
                     className="inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-black transition-all active:scale-[0.98] hover:brightness-110"
                   >
                     Get the APK
                   </a>
                   <a
-                    href="/dl/Astra-1.0.0-arm64-v8a.apk"
+                    href={RELEASES}
+                    target="_blank"
+                    rel="noreferrer"
                     className="inline-flex items-center gap-2 rounded-lg border border-white/[0.08] px-5 py-2.5 text-sm font-medium text-zinc-300 transition-colors hover:text-white"
                   >
-                    arm64 only
+                    All downloads
                   </a>
                 </div>
                 <p className="mt-4 font-mono text-[10px] text-zinc-600">
-                  341 MB universal · 174 MB arm64 · Android 8.0+
+                  arm64-v8a · Android 8.0+ · Java 25 runtime included
                 </p>
               </div>
             </Reveal>
             <Reveal delay={0.08}>
               <div className="flex h-full flex-col rounded-xl bg-panel p-8">
                 <IconTerminal size={24} className="text-accent/60" />
-                <h3 className="mt-5 text-xl font-semibold">Linux</h3>
+                <h3 className="mt-5 text-xl font-semibold">From source</h3>
                 <p className="mt-2 flex-1 text-sm leading-relaxed text-zinc-400">
-                  One portable AppImage with a GUI window and a CLI inside.
-                  Needs Java 25 and internet.
+                  GPL-3 means the whole thing is yours to build. Clone it, drop in
+                  the SDK path, run the release task.
                 </p>
                 <div className="mt-6">
                   <a
-                    href="/dl/Astra-1.0.0-x86_64.AppImage"
+                    href={REPO}
+                    target="_blank"
+                    rel="noreferrer"
                     className="inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-black transition-all active:scale-[0.98] hover:brightness-110"
                   >
-                    Get the AppImage
+                    Open the repository
                   </a>
-                </div>
-                <div className="mt-4 font-mono text-[10px] text-zinc-600">
-                  6.4 MB · x86_64 · chmod +x required
                 </div>
                 <div className="mt-4 rounded-lg bg-black/30 px-3 py-2.5">
                   <p className="font-mono text-[10px] leading-relaxed break-all text-zinc-600">
-                    sha256 {APPIMAGE_SHA256}
+                    git clone {REPO}.git
                   </p>
                 </div>
               </div>

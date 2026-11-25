@@ -51,6 +51,9 @@ cli/target/
 packaging/appimage/*.AppImage
 website/public/dl/
 website/share/*.log
+
+# local build logs
+/release-*.log
 website/share/*.txt
 
 # Launcher/game logs
