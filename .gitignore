@@ -52,3 +52,6 @@ packaging/appimage/*.AppImage
 website/public/dl/
 website/share/*.log
 website/share/*.txt
+
+# Launcher/game logs
+/logs/
