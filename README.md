@@ -21,6 +21,9 @@ Mojang's own public endpoints. Playing multiplayer on online-mode servers
 requires a legitimate Minecraft account; offline accounts exist for offline
 play and offline-mode servers.
 
+Site: **https://igorekragnar-botcreator.github.io/Astra-Launcher/** ·
+Downloads: **[Releases](https://github.com/igorekragnar-botcreator/Astra-Launcher/releases)**
+
 ## Features
 
 - Java Edition from 1.7 up to the current drop, MC 26.3 included (Java 25 runtime bundled)
