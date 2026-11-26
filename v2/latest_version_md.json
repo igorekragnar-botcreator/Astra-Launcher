@@ -1,7 +1,7 @@
 {
   "code": 10000,
   "version": "1.0.0",
-  "created_at": "2026-11-25T00:00:00Z",
+  "created_at": "2026-11-26T13:45:00Z",
   "default_cloud_drive": null,
   "cloud_drives": [],
   "files": [
@@ -9,21 +9,27 @@
       "file_name": "Astra-1.0.0-arm64-v8a.apk",
       "uri": "https://github.com/igorekragnar-botcreator/Astra-Launcher/releases/download/v1.0.0/Astra-1.0.0-arm64-v8a.apk",
       "arch": "arm64",
-      "size": 182607348
+      "size": 182631320
+    },
+    {
+      "file_name": "Astra-1.0.0-x86_64.apk",
+      "uri": "https://github.com/igorekragnar-botcreator/Astra-Launcher/releases/download/v1.0.0/Astra-1.0.0-x86_64.apk",
+      "arch": "x86_64",
+      "size": 188547486
     }
   ],
   "default_body": {
     "language": "en",
-    "markdown": "**Astra Launcher 1.0.0** - the first public build.\n\n- Cosmic redesign: new palette, starfield backdrop, Sora + Geist typography.\n- New icon and splash screen.\n- Package renamed to `dev.astra.launcher`.\n- Bundled Java 25 runtime, Minecraft 26.3 support.\n- GPL-3.0, source at https://github.com/igorekragnar-botcreator/Astra-Launcher.\n\nFork of Basalt / ZalithLauncher 2. Huge thanks to MovTery and the upstream contributors."
+    "markdown": "**Astra Launcher 1.0.0** - the first public build.\n\n- Cosmic redesign: new palette, starfield backdrop, Sora + Geist typography.\n- New icon and splash screen.\n- Package renamed to `dev.astra.launcher`.\n- Rust engine rebuilt for both ABIs: resumable downloads with HTTP Range, per-operation timeouts, size + SHA1 checks, crash triage restored.\n- Bundled Java 25 runtime, Minecraft 26.3 support.\n- Verified end to end on an emulator: 26.1.1 installs and reaches the in-game HUD. 26.2+ needs Vulkan 1.3.\n- GPL-3.0, source at https://github.com/igorekragnar-botcreator/Astra-Launcher.\n\nFork of Basalt / ZalithLauncher 2. Huge thanks to MovTery and the upstream contributors."
   },
   "bodies": [
     {
       "language": "en",
-      "markdown": "**Astra Launcher 1.0.0** - the first public build.\n\n- Cosmic redesign: new palette, starfield backdrop, Sora + Geist typography.\n- New icon and splash screen.\n- Package renamed to `dev.astra.launcher`.\n- Bundled Java 25 runtime, Minecraft 26.3 support.\n- GPL-3.0, source at https://github.com/igorekragnar-botcreator/Astra-Launcher.\n\nFork of Basalt / ZalithLauncher 2. Huge thanks to MovTery and the upstream contributors."
+      "markdown": "**Astra Launcher 1.0.0** - the first public build.\n\n- Cosmic redesign: new palette, starfield backdrop, Sora + Geist typography.\n- New icon and splash screen.\n- Package renamed to `dev.astra.launcher`.\n- Rust engine rebuilt for both ABIs: resumable downloads with HTTP Range, per-operation timeouts, size + SHA1 checks, crash triage restored.\n- Bundled Java 25 runtime, Minecraft 26.3 support.\n- Verified end to end on an emulator: 26.1.1 installs and reaches the in-game HUD. 26.2+ needs Vulkan 1.3.\n- GPL-3.0, source at https://github.com/igorekragnar-botcreator/Astra-Launcher.\n\nFork of Basalt / ZalithLauncher 2. Huge thanks to MovTery and the upstream contributors."
     },
     {
       "language": "ru",
-      "markdown": "**Astra Launcher 1.0.0** - первый публичный релиз.\n\n- Космический редизайн: новая палитра, звёздный фон, шрифты Sora и Geist.\n- Новая иконка и заставка.\n- Пакет переименован в `dev.astra.launcher`.\n- Встроенная Java 25, поддержка Minecraft 26.3.\n- GPL-3.0, исходники: https://github.com/igorekragnar-botcreator/Astra-Launcher.\n\nФорк Basalt / ZalithLauncher 2. Спасибо MovTery и всем участникам апстрима."
+      "markdown": "**Astra Launcher 1.0.0** - первый публичный релиз.\n\n- Космический редизайн: новая палитра, звёздный фон, шрифты Sora и Geist.\n- Новая иконка и заставка.\n- Пакет переименован в `dev.astra.launcher`.\n- Движок Rust пересобран под обе ABI: докачка по HTTP Range, таймауты на каждую операцию, проверка размера и SHA1, восстановлен разбор крашей.\n- Встроенная Java 25, поддержка Minecraft 26.3.\n- Проверено на эмуляторе: 26.1.1 ставится и доходит до игры. Для 26.2+ нужен Vulkan 1.3.\n- GPL-3.0, исходники: https://github.com/igorekragnar-botcreator/Astra-Launcher.\n\nФорк Basalt / ZalithLauncher 2. Спасибо MovTery и всем участникам апстрима."
     }
   ]
 }
