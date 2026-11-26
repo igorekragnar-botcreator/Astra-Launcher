@@ -51,8 +51,26 @@ First run on the device:
 
 1. The launcher unpacks its bundled Java runtimes (one-time).
 2. Add an offline account: Accounts, then pick Offline, and type a name.
-3. Download: Game, pick 26.3 (top of the Releases list), install.
+3. Download: Game, pick a version, install.
 4. Home: pick the version card, Launch.
+
+### What has been verified
+
+The x86_64 build was installed on an Android 16 emulator (Pixel 6 profile,
+`-gpu host`, RTX 3050) and the whole flow was run end to end:
+
+- 26.1.1 installed (533 MB, 5201 files) through the Rust engine, offline
+  account created, world generated, and the game reached the in-game HUD.
+- 26.3 starts but cannot create a graphics backend there: the emulator only
+  offers Vulkan 1.2 without `VK_KHR_dynamic_rendering`, `push_descriptor`,
+  `synchronization2` and `VK_EXT_vertex_attribute_divisor`, and the OpenGL path
+  fails with a `glGetError` mismatch. This is an emulator limitation, not a
+  launcher one: 26.2+ needs Vulkan 1.3, which phones and tablets have.
+- Frame rate on that emulator is 38-49 in menus and 8-12 in a generated world,
+  because every GL call is translated twice (desktop GL to GLES, then through
+  virtio-gpu). A real device renders GLES directly and is far faster.
+
+So: on an emulator use 26.1 or older, or a device with Vulkan 1.3 for 26.2+.
 
 ## Configuration
 
