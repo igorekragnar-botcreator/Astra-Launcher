@@ -10,37 +10,30 @@
 
 package com.movtery.zalithlauncher.engine
 
-import android.util.Log
+import android.os.Build
 import com.movtery.zalithlauncher.game.download.engine.DownloadRequest
-import com.movtery.zalithlauncher.game.version.download.DownloadTask
 import com.movtery.zalithlauncher.utils.logging.Logger
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
 
 /**
  * Bridge to the Rust download engine: shared keep-alive agent, bounded worker
  * threads, 60s timeouts, 3-attempt retries with candidate rotation, SHA1
  * verification, and byte-accurate progress. Job-based: start, poll, wait.
+ *
+ * The JNI symbols themselves are declared in [RustEngine]: the native side
+ * exports Java_<package>_RustEngine_*, so declaring them here would leave every
+ * call unresolved at runtime. This object only marshals the JSON payloads.
  */
 object RustDownloader {
     private const val TAG = "RustDownloader"
 
-    val available: Boolean = try {
-        System.loadLibrary("basalt_engine")
-        Logger.info(TAG, "Rust engine active (downloader + plan builder)")
-        true
-    } catch (th: Throwable) {
-        Logger.warning(TAG, "Rust engine unavailable; using the Kotlin engine", th)
-        false
-    }
+    /** True when the native engine is loaded; callers fall back to Kotlin otherwise. */
+    val available: Boolean = RustEngine.isAvailable
 
     @Serializable
     data class Snapshot(
@@ -56,20 +49,10 @@ object RustDownloader {
 
     private val json = Json { ignoreUnknownKeys = true }
 
-    private fun tasksToJson(tasks: List<DownloadTask>): String {
-        val array = JsonArray(
-            tasks.map { task ->
-                JsonObject(
-                    mapOf(
-                        "urls" to JsonArray(task.urls.map { JsonPrimitive(it) }),
-                        "target" to JsonPrimitive(task.targetFile.absolutePath),
-                        "sha1" to (task.sha1?.let { JsonPrimitive(it) } ?: JsonPrimitive(null as String?)),
-                        "size" to JsonPrimitive(task.size)
-                    )
-                )
-            }
-        )
-        return array.toString()
+    /** The classpath plan is built for the device ABI, not the build host one. */
+    private val platformArch: String by lazy {
+        val abi = Build.SUPPORTED_ABIS.firstOrNull().orEmpty()
+        if (abi.startsWith("arm64")) "arm64" else "x86_64"
     }
 
     /** Starts a Rust download job for the given tasks. Returns the job id. */
@@ -87,24 +70,25 @@ object RustDownloader {
                 }
             }
         )
-        return nativeDownloadStart(array.toString(), workers)
+        val jobId = RustEngine.downloadStart(array.toString(), workers)
+        check(jobId >= 0) { "Rust download engine refused the job" }
+        return jobId
     }
 
     fun progress(jobId: Int): Snapshot? {
-        val raw = nativeDownloadProgress(jobId)
+        val raw = RustEngine.downloadProgress(jobId) ?: return null
         return runCatching { json.decodeFromString(Snapshot.serializer(), raw) }.getOrNull()
     }
 
     /** Blocks until the job finishes. Returns failures keyed by path. */
     fun wait(jobId: Int): Map<String, String> {
-        val raw = nativeDownloadWait(jobId)
+        val raw = RustEngine.downloadWait(jobId)
+            ?: error("Rust download engine is unavailable")
+        // A decode failure must not be read as "everything downloaded", so it
+        // propagates instead of degrading to an empty failure map.
         val failures = json.decodeFromString<List<Failure>>(raw)
         return failures.associate { it.path to it.error }
     }
-
-    private external fun nativeDownloadStart(tasksJson: String, workers: Int): Int
-    private external fun nativeDownloadProgress(jobId: Int): String
-    private external fun nativeDownloadWait(jobId: Int): String
 
     @Serializable
     data class LaunchPlan(
@@ -126,33 +110,19 @@ object RustDownloader {
      */
     fun buildPlan(manifestJson: String, versionName: String): LaunchPlan? {
         if (!available) return null
+        val raw = RustEngine.buildPlan(
+            manifestJson = manifestJson,
+            layoutJson = """{"clientJar":"/dev/null","librariesDir":"/lib","nativesDir":"/nat","gameDir":"/g","assetsDir":"/a","assetIndexId":"x","runtimeHome":"/"}""",
+            optionsJson = """{"ignoreDefaultUserJvm":true,"stringsOnly":true,"substituteClasspath":false,"stripAlwaysPreTouch":false}""",
+            authJson = """{"playerName":"x","uuid":"x"}""",
+            quickPlayJson = "null",
+            platformArch = platformArch,
+            versionName = versionName
+        ) ?: return null
         return runCatching {
-            val layout = """{"clientJar":"/dev/null","librariesDir":"/lib","nativesDir":"/nat","gameDir":"/g","assetsDir":"/a","assetIndexId":"x","runtimeHome":"/"}"""
-            val auth = """{"playerName":"x","uuid":"x"}"""
-            val raw = nativeBuildPlan(
-                manifestJson,
-                layout,
-                """{"ignoreDefaultUserJvm":true,"stringsOnly":true,"substituteClasspath":false,"stripAlwaysPreTouch":false}""",
-                auth,
-                "null",
-                "linux",
-                "x86_64",
-                versionName
-            )
             json.decodeFromString(LaunchPlan.serializer(), raw)
         }.onFailure {
-            Logger.warning(TAG, "Rust buildPlan failed, using the Kotlin assembly", it)
+            Logger.warning(TAG, "Rust plan payload was not a LaunchPlan", it)
         }.getOrNull()
     }
-
-    private external fun nativeBuildPlan(
-        manifestJson: String,
-        layoutJson: String,
-        optionsJson: String,
-        authJson: String,
-        quickPlayJson: String,
-        platformOs: String,
-        platformArch: String,
-        versionName: String
-    ): String
 }

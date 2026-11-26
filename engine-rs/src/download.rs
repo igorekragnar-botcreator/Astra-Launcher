@@ -12,11 +12,20 @@ use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
 use ureq::Agent;
 
+const USER_AGENT: &str = "Astra/1.0 (Basalt engine)";
+
 fn agent() -> &'static Agent {
     static AGENT: OnceLock<Agent> = OnceLock::new();
     AGENT.get_or_init(|| {
         ureq::AgentBuilder::new()
             .max_idle_connections_per_host(64)
+            // Per-operation timeouts instead of one deadline for the whole
+            // request: a stalled socket fails in seconds and the retry can
+            // resume, while a large body on a slow link may take as long as
+            // it needs as long as bytes keep flowing.
+            .timeout_connect(Duration::from_secs(CONNECT_TIMEOUT_SECS))
+            .timeout_read(Duration::from_secs(READ_TIMEOUT_SECS))
+            .timeout_write(Duration::from_secs(READ_TIMEOUT_SECS))
             .build()
     })
 }
@@ -48,8 +57,9 @@ pub struct DownloadFailure {
     pub error: String,
 }
 
-const RETRY_ATTEMPTS: usize = 3;
-const REQUEST_TIMEOUT_SECS: u64 = 60;
+const RETRY_ATTEMPTS: usize = 4;
+const CONNECT_TIMEOUT_SECS: u64 = 15;
+const READ_TIMEOUT_SECS: u64 = 30;
 
 fn file_sha1(path: &Path) -> Option<String> {
     use sha1_smol::Sha1;
@@ -82,25 +92,53 @@ fn already_satisfied(spec: &DownloadSpec) -> bool {
     }
 }
 
-fn download_one(url: &str, target: &str, expected_sha1: Option<&str>) -> Result<(), String> {
-    let response = agent()
-        .get(url)
-        .set("User-Agent", "Basalt")
-        .timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS))
-        .call()
-        .map_err(|e| format!("{url}: {e}"))?;
-    if response.status() != 200 {
-        return Err(format!("{url}: HTTP {}", response.status()));
-    }
+fn download_one(
+    url: &str,
+    target: &str,
+    expected_size: u64,
+    expected_sha1: Option<&str>,
+) -> Result<(), String> {
     let target_path = Path::new(target);
     if let Some(parent) = target_path.parent() {
         fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
     let tmp = target_path.with_extension("basalt-part");
-    let mut file = fs::File::create(&tmp).map_err(|e| e.to_string())?;
+
+    // A partial body left by an earlier attempt is resumed instead of
+    // restarted: on a flaky mobile link that is the difference between
+    // finishing a batch and looping on the same few files forever.
+    let resume_from = fs::metadata(&tmp).map(|m| m.len()).unwrap_or(0);
+    let mut request = agent().get(url).set("User-Agent", USER_AGENT);
+    if resume_from > 0 {
+        request = request.set("Range", &format!("bytes={resume_from}-"));
+    }
+    let response = request.call().map_err(|e| format!("{url}: {e}"))?;
+    let status = response.status();
+    let resuming = status == 206 && resume_from > 0;
+    if status != 200 && !resuming {
+        return Err(format!("{url}: HTTP {status}"));
+    }
+
+    let mut file = if resuming {
+        fs::OpenOptions::new()
+            .append(true)
+            .open(&tmp)
+            .map_err(|e| e.to_string())?
+    } else {
+        // Either a fresh download, or the server ignored Range: restart.
+        fs::File::create(&tmp).map_err(|e| e.to_string())?
+    };
     let mut reader = response.into_reader();
-    std::io::copy(&mut reader, &mut file).map_err(|e| e.to_string())?;
+    std::io::copy(&mut reader, &mut file).map_err(|e| format!("{url}: {e}"))?;
     drop(file);
+
+    let written = fs::metadata(&tmp).map(|m| m.len()).unwrap_or(0);
+    if expected_size > 0 && written != expected_size {
+        let _ = fs::remove_file(&tmp);
+        return Err(format!(
+            "{url}: size mismatch, got {written} bytes, expected {expected_size}"
+        ));
+    }
 
     if let Some(sha1) = expected_sha1 {
         let got = file_sha1(&tmp).ok_or_else(|| "hash read failed".to_string())?;
@@ -120,10 +158,10 @@ fn download_with_retry(spec: &DownloadSpec) -> Result<(), String> {
     let mut last: Option<String> = None;
     for attempt in 0..RETRY_ATTEMPTS {
         if attempt > 0 {
-            std::thread::sleep(Duration::from_millis(400 * (1 << attempt)));
+            std::thread::sleep(Duration::from_millis(300 * attempt as u64));
         }
         let url = &spec.urls[attempt % spec.urls.len()];
-        match download_one(url, &spec.target, spec.sha1.as_deref()) {
+        match download_one(url, &spec.target, spec.size, spec.sha1.as_deref()) {
             Ok(()) => return Ok(()),
             Err(err) => last = Some(err),
         }

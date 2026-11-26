@@ -99,6 +99,81 @@ object RustEngine {
     private external fun nativeDefaultRamAllocation(deviceRamMb: Int, is32Bit: Int): Int
     private external fun nativeApplyGcPolicy(argsJson: String): String
 
+    /** True when `libbasalt_engine.so` is loaded; callers fall back to Kotlin otherwise. */
+    internal val isAvailable: Boolean get() = loaded
+
+    // ── Download jobs ──────────────────────────────────────────────────────
+    // Every JNI entry point lives in this class: the exported symbol is
+    // Java_<package>_RustEngine_<name>, so declaring these natives anywhere
+    // else would leave them unresolved at runtime.
+
+    /** Starts a download job and returns its id, or -1 when the engine failed. */
+    fun downloadStart(tasksJson: String, workers: Int): Int {
+        if (!loaded) return -1
+        return try {
+            // The Rust side answers with a JSON string, not an int.
+            nativeDownloadStart(tasksJson, workers.coerceAtLeast(1)).toIntOrNull() ?: -1
+        } catch (th: Throwable) {
+            Logger.warning(TAG, "Rust downloadStart failed", th)
+            -1
+        }
+    }
+
+    /** Progress snapshot as JSON, or null when the engine is unavailable. */
+    fun downloadProgress(jobId: Int): String? {
+        if (!loaded) return null
+        return runCatching { nativeDownloadProgress(jobId) }
+            .onFailure { Logger.warning(TAG, "Rust downloadProgress failed", it) }
+            .getOrNull()
+    }
+
+    /** Blocks until the job ends and returns the failure list as JSON. */
+    fun downloadWait(jobId: Int): String? {
+        if (!loaded) return null
+        return runCatching { nativeDownloadWait(jobId) }
+            .onFailure { Logger.warning(TAG, "Rust downloadWait failed", it) }
+            .getOrNull()
+    }
+
+    /** Builds the launch plan as JSON, or null so the caller uses Kotlin. */
+    fun buildPlan(
+        manifestJson: String,
+        layoutJson: String,
+        optionsJson: String,
+        authJson: String,
+        quickPlayJson: String,
+        platformArch: String,
+        versionName: String
+    ): String? {
+        if (!loaded) return null
+        return runCatching {
+            nativeBuildPlan(
+                manifestJson,
+                layoutJson,
+                optionsJson,
+                authJson,
+                quickPlayJson,
+                platformArch,
+                versionName
+            )
+        }.onFailure {
+            Logger.warning(TAG, "Rust buildPlan failed, using the Kotlin assembly", it)
+        }.getOrNull()
+    }
+
+    private external fun nativeDownloadStart(tasksJson: String, workers: Int): String
+    private external fun nativeDownloadProgress(jobId: Int): String
+    private external fun nativeDownloadWait(jobId: Int): String
+    private external fun nativeBuildPlan(
+        manifestJson: String,
+        layoutJson: String,
+        optionsJson: String,
+        authJson: String,
+        quickPlayJson: String,
+        platformArch: String,
+        versionName: String
+    ): String
+
     // Kotlin fallbacks, identical in behavior to the Rust implementation.
 
     private fun kotlinFallbackDefaultRam(deviceRamMb: Int, is32Bit: Boolean): Int {

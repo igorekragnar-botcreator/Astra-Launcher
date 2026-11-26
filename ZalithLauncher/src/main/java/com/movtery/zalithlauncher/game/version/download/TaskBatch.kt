@@ -37,6 +37,18 @@ private const val TAG = "TaskBatch"
 private const val LOCAL_VERIFY_PARALLELISM = 4
 
 /**
+ * The Rust engine spawns one OS thread per worker and its request timeout
+ * covers the whole body, so a high worker count saturates a mobile NAT and
+ * turns the tail of a batch into "timed out reading response". Sixteen keeps
+ * the link busy without starving sockets.
+ */
+private const val RUST_MAX_WORKERS = 16
+
+/** Files the Rust engine could not finish are repaired by the Kotlin engine. */
+private const val REPAIR_CONNECTIONS = 8
+private const val REPAIR_ROUNDS = 2
+
+/**
  * 把一批 [DownloadTask] 交给下载引擎执行的统一入口：
  * 先挑出本地已可复用的文件（直接计入完成并执行挂后任务），
  * 剩余的交给引擎分块并发下载；仍有失败时抛出 [DownloadFailedException]，
@@ -111,7 +123,9 @@ suspend fun Task.runBatchDownloads(
     } catch (e: CancellationException) {
         throw e
     } catch (e: Exception) {
-        val failedDetail = batch.lastRunFailures.keys.joinToString("\n") { path -> path }
+        val failedDetail = batch.lastRunFailures.entries.joinToString("\n") { (path, error) ->
+            "$path\n  $error"
+        }
         throw DownloadFailedException("Failed downloads:\n$failedDetail", e)
     } finally {
         clearSpeed()
@@ -168,20 +182,35 @@ private suspend fun Task.runBatchDownloadsRust(
 ) {
     val jobId = RustDownloader.start(
         requests = pending.map { it.toRequest() },
-        workers = maxConnections
+        workers = maxConnections.coerceIn(1, RUST_MAX_WORKERS)
     )
 
     var lastBytes = 0L
     var lastElapsed = 0L
     var startedAt = System.currentTimeMillis()
     var lastSnapshot: BatchProgress? = null
+    var rustBytes = 0L
+    var rustFiles = 0
+    var rustTotalBytes = 0L
+    var rustTotalFiles = 0
 
     while (true) {
         val snapshot = RustDownloader.progress(jobId) ?: break
+        rustBytes = snapshot.bytesDone
+        rustFiles = snapshot.done
+        rustTotalBytes = snapshot.bytesTotal
+        rustTotalFiles = snapshot.total
         val elapsed = System.currentTimeMillis() - startedAt
         val speed = if (elapsed > lastElapsed + 100) {
             val delta = (snapshot.bytesDone + reusableBytes) - lastBytes
-            delta * 1000 / (elapsed - lastElapsed).coerceAtLeast(1)
+            if (delta > 0) {
+                delta * 1000 / (elapsed - lastElapsed).coerceAtLeast(1)
+            } else {
+                // The engine reports bytes per finished file, so a short window
+                // often sees no delta at all; keep the last real speed instead
+                // of flashing "0 B/s".
+                lastSnapshot?.speedBytesPerSec ?: 0L
+            }
         } else {
             lastSnapshot?.speedBytesPerSec ?: 0L
         }
@@ -210,25 +239,76 @@ private suspend fun Task.runBatchDownloadsRust(
     }
 
     val failures = RustDownloader.wait(jobId)
-    val judgedFailures = failures.mapNotNull { (path, error) ->
-        val task = pending.find { it.targetFile.absolutePath == path }
+
+    // Rust reports (path, error) pairs. Whatever it could not finish is handed
+    // to the Kotlin engine, which has a per-read timeout, per-source retries
+    // and HTTP Range resume: on a flaky link that combination finishes files
+    // the native 60s whole-request timeout gives up on.
+    val failedTasks = mutableListOf<DownloadTask>()
+    val stillFailed = mutableListOf<Pair<String, String>>()
+    failures.forEach { (path, error) ->
+        val task = pending.firstOrNull { it.targetFile.absolutePath == path }
+        if (task == null) {
+            stillFailed += path to error
+            return@forEach
+        }
         val throwable = DownloadFailedException(error)
-        if (task != null && acceptFailure?.invoke(task, throwable) == true) {
-            onFileSuccess(
-                DownloadRequest(
-                    urls = task.urls,
-                    targetFile = task.targetFile,
-                    sha1 = task.sha1,
-                    expectedSize = task.size,
-                    tag = task
-                )
-            )
-            null
+        if (acceptFailure?.invoke(task, throwable) == true) {
+            onFileSuccess(task.toRequest())
         } else {
-            path
+            failedTasks += task
         }
     }
-    if (judgedFailures.isNotEmpty()) {
-        throw DownloadFailedException("Failed downloads:\n${judgedFailures.joinToString("\n")}")
+
+    if (failedTasks.isNotEmpty()) {
+        Logger.warning(
+            TAG,
+            "Rust engine left ${failedTasks.size} file(s) unfinished, repairing with the resumable Kotlin engine"
+        )
+        val repair = BatchDownloader(
+            requests = failedTasks.map { it.toRequest() },
+            maxConnections = maxConnections.coerceIn(1, REPAIR_CONNECTIONS),
+            retryRounds = REPAIR_ROUNDS
+        )
+        repair.onUpdate = { snapshot ->
+            val combined = BatchProgress(
+                downloadedBytes = rustBytes + reusableBytes + snapshot.downloadedBytes,
+                totalBytes = rustTotalBytes + reusableBytes,
+                downloadedFiles = rustFiles + snapshot.downloadedFiles,
+                totalFiles = rustTotalFiles,
+                speedBytesPerSec = snapshot.speedBytesPerSec
+            )
+            updateProgress(
+                if (combined.totalBytes > 0) {
+                    (combined.downloadedBytes.toFloat() / combined.totalBytes).coerceIn(0f, 1f)
+                } else 0f
+            )
+            onSnapshot(combined)
+        }
+        repair.onFileSuccess = { request ->
+            (request.tag as? DownloadTask)?.runFileDownloadedTask()
+        }
+        acceptFailure?.let { judge ->
+            repair.onFailureFilter = { request, error ->
+                (request.tag as? DownloadTask)?.let { judge(it, error) } ?: false
+            }
+        }
+        try {
+            repair.run()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            repair.lastRunFailures.forEach { (path, error) ->
+                stillFailed += path to (error.message ?: error::class.simpleName ?: "download failed")
+            }
+        }
+    }
+
+    if (stillFailed.isNotEmpty()) {
+        throw DownloadFailedException(
+            "Failed downloads:\n" + stillFailed.joinToString("\n") { (path, error) ->
+                "$path\n  $error"
+            }
+        )
     }
 }

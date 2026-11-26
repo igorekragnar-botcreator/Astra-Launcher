@@ -58,3 +58,4 @@ website/share/*.txt
 
 # Launcher/game logs
 /logs/
+engine-build.log
