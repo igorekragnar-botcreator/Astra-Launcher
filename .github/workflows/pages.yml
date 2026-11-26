@@ -29,7 +29,7 @@ jobs:
         working-directory: website
         run: |
           npm ci
-          npx vite build --base=/basalt/
+          npx vite build --base=/Astra-Launcher/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: website/dist

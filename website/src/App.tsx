@@ -92,11 +92,15 @@ const NAV = [
 
 type Shot = { src: string; alt: string; label: string };
 
+// The site is served from a repository subpath, so public files are addressed
+// relative to the build base instead of the domain root.
+const BASE = import.meta.env.BASE_URL;
+
 const SHOTS: Shot[] = [
-  { src: "/shots/home-263.png", alt: "Home screen with 26.3 installed and an offline account", label: "Home" },
-  { src: "/shots/download-263.png", alt: "Download list with 26.3 at the top of releases", label: "Downloads" },
-  { src: "/shots/offline-account.png", alt: "Offline account created and selected", label: "Accounts" },
-  { src: "/shots/home-empty.png", alt: "Empty home state pointing at the download action", label: "First run" },
+  { src: `${BASE}shots/home-263.png`, alt: "Home screen with 26.3 installed and an offline account", label: "Home" },
+  { src: `${BASE}shots/download-263.png`, alt: "Download list with 26.3 at the top of releases", label: "Downloads" },
+  { src: `${BASE}shots/offline-account.png`, alt: "Offline account created and selected", label: "Accounts" },
+  { src: `${BASE}shots/home-empty.png`, alt: "Empty home state pointing at the download action", label: "First run" },
 ];
 
 const CHECKS = [
@@ -327,7 +331,7 @@ function App() {
                 always sits on clean canvas. */}
           <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden="true">
             <img
-              src="/shots/hero-backdrop.png"
+              src={`${BASE}shots/hero-backdrop.png`}
               alt=""
               className="hero-shot h-full w-full object-cover object-[64%_center]"
             />
@@ -648,9 +652,15 @@ function App() {
                   >
                     All downloads
                   </a>
+                  <a
+                    href={ASSET(`Astra-${VERSION}-x86_64.apk`)}
+                    className="inline-flex items-center gap-2 rounded-lg border border-white/[0.08] px-5 py-2.5 text-sm font-medium text-zinc-300 transition-colors hover:text-white"
+                  >
+                    x86_64 (emulators)
+                  </a>
                 </div>
                 <p className="mt-4 font-mono text-[10px] text-zinc-600">
-                  arm64-v8a · Android 8.0+ · Java 25 runtime included
+                  arm64-v8a and x86_64 · Android 8.0+ · Java 25 runtime included
                 </p>
               </div>
             </Reveal>
