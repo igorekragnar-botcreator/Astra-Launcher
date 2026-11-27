@@ -195,6 +195,8 @@ class GameLauncher(
         if (Renderers.isCurrentRendererValid()) {
             setRendererEnv(envMap)
         }
+        envMap["ASTRA_VERSION_CODE"] = BuildConfig.VERSION_CODE.toString()
+        // Kept for compatibility with mods/scripts that still read the old variable name.
         envMap["ZALITH_VERSION_CODE"] = BuildConfig.VERSION_CODE.toString()
 
         //lwjgl3ify 实例：注入 XDG 数据目录兜底，避免其向不存在的 ~/.local/share

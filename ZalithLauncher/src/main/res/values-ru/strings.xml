@@ -95,6 +95,9 @@
     <string name="unpack_screen_launcher">Основные компоненты лаунчера</string>
     <!-- Main Menu -->
     <string name="main_launch_game">Запустить</string>
+    <string name="main_files">Файлы</string>
+    <string name="home_quick_versions">Версии</string>
+    <string name="home_quick_accounts">Аккаунты</string>
     <string name="main_task_menu">Меню задач</string>
     <!-- Download -->
     <string name="download_category_game">Версии</string>
@@ -818,7 +821,7 @@
     <string name="about_launcher_title">О лаунчере</string>
     <string name="about_launcher_version">Версия лаунчера: %s</string>
     <string name="about_launcher_author_movtery_title">MovTery</string>
-    <string name="about_launcher_author_movtery_text">Автор %s</string>
+    <string name="about_launcher_author_movtery_text">Автор ZalithLauncher 2 — проекта, на котором основан %s</string>
     <string name="about_launcher_project_link">Ссылка на проект</string>
     <string name="about_sponsor">Спонсорская поддержка</string>
     <string name="about_acknowledgements_title">Благодарности</string>

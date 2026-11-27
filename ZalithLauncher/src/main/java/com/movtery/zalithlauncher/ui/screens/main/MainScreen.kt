@@ -124,6 +124,18 @@ import com.movtery.zalithlauncher.viewmodel.ModpackImportViewModel
 import com.movtery.zalithlauncher.viewmodel.ScreenBackStackViewModel
 import com.movtery.zalithlauncher.viewmodel.sendKeepScreen
 import com.movtery.zalithlauncher.viewmodel.sendToast
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+
+private val NavRailWidth = 86.dp
 
 @Composable
 fun MainScreen(
@@ -176,75 +188,87 @@ fun MainScreen(
                 AstraBackdrop()
             }
 
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-            ) {
-                TopBar(
+            Row(modifier = Modifier.fillMaxSize()) {
+                AstraNavRail(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(40.dp),
+                        .fillMaxHeight()
+                        .width(NavRailWidth),
                     mainScreenKey = mainScreenKey,
                     inLauncherScreen = inLauncherScreen,
-                    taskRunning = tasks.isEmpty(),
+                    taskRunning = tasks.isNotEmpty(),
                     isTasksExpanded = isTaskMenuExpanded,
-                    contentColor = onBackgroundColor(),
-                    onScreenBack = {
-                        screenBackStackModel.mainScreen.backStack.removeFirstOrNull()
-                    },
-                    toMainScreen = toMainScreen,
-                    toSettingsScreen = {
-                        screenBackStackModel.mainScreen.removeAndNavigateTo(
-                            removes = screenBackStackModel.clearBeforeNavKeys,
-                            screenKey = screenBackStackModel.settingsScreen
-                        )
-                    },
-                    toDownloadScreen = {
+                    onHome = toMainScreen,
+                    onDownload = {
                         screenBackStackModel.navigateToDownload()
                     },
-                    toMultiplayerScreen = {
+                    onMultiplayer = {
                         screenBackStackModel.mainScreen.removeAndNavigateTo(
                             removes = screenBackStackModel.clearBeforeNavKeys,
                             screenKey = NormalNavKey.Multiplayer
                         )
                     },
-                    openFileManager = {
+                    onSettings = {
+                        screenBackStackModel.mainScreen.removeAndNavigateTo(
+                            removes = screenBackStackModel.clearBeforeNavKeys,
+                            screenKey = screenBackStackModel.settingsScreen
+                        )
+                    },
+                    onFileManager = {
                         eventViewModel.sendEvent(
                             EventViewModel.Event.OpenFileManager(
                                 rootPath = PathManager.DIR_FILES_EXTERNAL.absolutePath
                             )
                         )
                     },
-                    changeExpandedState = {
+                    onTasks = {
                         changeTasksExpandedState()
                     },
                 )
 
-                Box(
+                Column(
                     modifier = Modifier
-                        .fillMaxWidth()
                         .weight(1f)
+                        .fillMaxHeight()
                 ) {
-                    NavigationUI(
-                        modifier = Modifier.fillMaxSize(),
-                        screenBackStackModel = screenBackStackModel,
-                        toMainScreen = toMainScreen,
-                        eventViewModel = eventViewModel,
-                        modpackImportViewModel = modpackImportViewModel,
-                        modifyVersionViewModel = modifyVersionViewModel,
-                        submitError = submitError
-                    )
+                    if (!inLauncherScreen) {
+                        ScreenHeader(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(54.dp),
+                            mainScreenKey = mainScreenKey,
+                            onScreenBack = {
+                                screenBackStackModel.mainScreen.backStack.removeFirstOrNull()
+                            },
+                            onHome = toMainScreen
+                        )
+                    }
 
-                    TaskMenu(
-                        tasks = tasks,
-                        isExpanded = isTaskMenuExpanded,
+                    Box(
                         modifier = Modifier
-                            .fillMaxHeight()
-                            .fillMaxWidth(0.3f)
-                            .align(Alignment.CenterStart)
-                            .padding(all = 6.dp)
+                            .fillMaxWidth()
+                            .weight(1f)
                     ) {
-                        changeTasksExpandedState()
+                        NavigationUI(
+                            modifier = Modifier.fillMaxSize(),
+                            screenBackStackModel = screenBackStackModel,
+                            toMainScreen = toMainScreen,
+                            eventViewModel = eventViewModel,
+                            modpackImportViewModel = modpackImportViewModel,
+                            modifyVersionViewModel = modifyVersionViewModel,
+                            submitError = submitError
+                        )
+
+                        TaskMenu(
+                            tasks = tasks,
+                            isExpanded = isTaskMenuExpanded,
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .fillMaxWidth(0.32f)
+                                .align(Alignment.CenterStart)
+                                .padding(all = 6.dp)
+                        ) {
+                            changeTasksExpandedState()
+                        }
                     }
                 }
             }
@@ -252,241 +276,242 @@ fun MainScreen(
     }
 }
 
+/**
+ * Persistent Astra navigation rail. Replaces the upstream top bar: brand mark at the top,
+ * icon destinations in the middle and utilities (tasks, files) pinned to the bottom.
+ */
 @Composable
-private fun <E: TitledNavKey> TopBar(
-    mainScreenKey: E?,
+private fun AstraNavRail(
+    mainScreenKey: TitledNavKey?,
     inLauncherScreen: Boolean,
     taskRunning: Boolean,
     isTasksExpanded: Boolean,
+    onHome: () -> Unit,
+    onDownload: () -> Unit,
+    onMultiplayer: () -> Unit,
+    onSettings: () -> Unit,
+    onFileManager: () -> Unit,
+    onTasks: () -> Unit,
     modifier: Modifier = Modifier,
-    contentColor: Color,
-    onScreenBack: () -> Unit,
-    toMainScreen: () -> Unit,
-    toSettingsScreen: () -> Unit,
-    toDownloadScreen: () -> Unit,
-    toMultiplayerScreen: () -> Unit,
-    openFileManager: () -> Unit,
-    changeExpandedState: () -> Unit,
 ) {
-    val festivals = LocalFestivals.current
+    val palette = MaterialTheme.colorScheme
+    val hasWallpaper = LocalBackgroundViewModel.current?.isValid == true
 
-    val inMultiplayerScreen = mainScreenKey is NormalNavKey.Multiplayer
-    val inDownloadScreen = mainScreenKey is NestedNavKey.Download
-    val inSettingsScreen = mainScreenKey is NestedNavKey.Settings
-
-    CompositionLocalProvider(
-        LocalContentColor provides contentColor
+    Surface(
+        modifier = modifier,
+        color = palette.surfaceContainerLowest.copy(alpha = if (hasWallpaper) 0.45f else 0.72f),
+        contentColor = palette.onSurfaceVariant
     ) {
-        ConstraintLayout(modifier = modifier) {
-            val (backCenter, title, endButtons) = createRefs()
+        Column(
+            modifier = Modifier
+                .fillMaxHeight()
+                .padding(vertical = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            AstraRailLogo(onClick = onHome)
+            Spacer(modifier = Modifier.height(6.dp))
 
-            val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
+            AstraRailItem(
+                selected = inLauncherScreen,
+                icon = R.drawable.ic_home_filled,
+                label = stringResource(R.string.generic_main_menu),
+                onClick = onHome
+            )
+            AstraRailItem(
+                selected = mainScreenKey is NestedNavKey.Download,
+                icon = R.drawable.ic_download_2_filled,
+                label = stringResource(R.string.generic_download),
+                onClick = onDownload
+            )
+            AstraRailItem(
+                selected = mainScreenKey is NormalNavKey.Multiplayer,
+                icon = R.drawable.ic_group_filled,
+                label = stringResource(R.string.terracotta),
+                onClick = onMultiplayer
+            )
+            AstraRailItem(
+                selected = mainScreenKey is NestedNavKey.Settings,
+                icon = R.drawable.ic_settings_filled,
+                label = stringResource(R.string.generic_setting),
+                onClick = onSettings
+            )
 
-            Row(
-                modifier = Modifier
-                    .constrainAs(backCenter) {
-                        start.linkTo(parent.start)
-                        top.linkTo(parent.top)
-                        bottom.linkTo(parent.bottom)
-                    }
-                    .fillMaxHeight()
-            ) {
-                AnimatedVisibility(
-                    visible = !inLauncherScreen
-                ) {
-                    Row(modifier = Modifier.fillMaxHeight()) {
-                        Spacer(Modifier.width(12.dp))
+            Spacer(modifier = Modifier.weight(1f))
 
-                        IconButton(
-                            modifier = Modifier.fillMaxHeight(),
-                            onClick = {
-                                if (!inLauncherScreen) {
-                                    //不在主屏幕时才允许返回
-                                    backDispatcher?.onBackPressed() ?: run {
-                                        onScreenBack()
-                                    }
-                                }
-                            }
-                        ) {
-                            Icon(
-                                modifier = Modifier.size(24.dp),
-                                painter = painterResource(R.drawable.ic_arrow_back),
-                                contentDescription = stringResource(R.string.generic_back)
-                            )
-                        }
-
-                        IconButton(
-                            modifier = Modifier.fillMaxHeight(),
-                            onClick = {
-                                if (!inLauncherScreen) {
-                                    //不在主屏幕时才允许回到主页面
-                                    toMainScreen()
-                                }
-                            }
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_home_filled),
-                                contentDescription = stringResource(R.string.generic_main_menu)
-                            )
-                        }
-                    }
-                }
-            }
-            val parentRes = mainScreenKey?.title
-            val childRes = (mainScreenKey as? BackStackNavKey<*>)?.currentKey?.title
-
-            Crossfade(
-                modifier = Modifier.constrainAs(title) {
-                    centerVerticallyTo(parent)
-                    start.linkTo(backCenter.end, margin = 16.dp)
-                },
-                targetState = parentRes to childRes
-            ) { (parent, child) ->
-                val style = MaterialTheme.typography.titleMedium
-                val softWarp = false
-                val maxLines = 1
-
-                if (parent == null) {
-                    if (festivals.isEmpty()) {
-                        Text(
-                            text = BuildKeys.LAUNCHER_IDENTIFIER,
-                            style = style,
-                            softWrap = softWarp,
-                            maxLines = maxLines
-                        )
-                    } else {
-                        FestivalTitleText(
-                            festivals = festivals,
-                            style = style,
-                            maxLines = maxLines
-                        )
-                    }
-                } else {
-                    val titleText = if (child != null) {
-                        androidText(parent, androidText(" - "), child)
-                    } else {
-                        parent
-                    }
-
-                    AndroidStringText(
-                        text = titleText,
-                        style = style,
-                        softWrap = softWarp,
-                        maxLines = maxLines
-                    )
-                }
-            }
-
-            Row(
-                modifier = Modifier
-                    .constrainAs(endButtons) {
-                        top.linkTo(parent.top)
-                        bottom.linkTo(parent.bottom)
-                        end.linkTo(parent.end, margin = 12.dp)
-                    },
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                AnimatedVisibility(
-                    visible = !(isTasksExpanded || taskRunning),
-                    enter = slideInVertically(
-                        initialOffsetY = { -50 }
-                    ) + fadeIn(),
-                    exit = slideOutVertically(
-                        targetOffsetY = { -50 }
-                    ) + fadeOut()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .clip(shape = MaterialTheme.shapes.large)
-                            .clickable { changeExpandedState() }
-                            .padding(all = 8.dp)
-                            .width(120.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        LinearProgressIndicator(modifier = Modifier.weight(1f))
-                        Icon(
-                            modifier = Modifier.size(22.dp),
-                            painter = painterResource(R.drawable.ic_assignment_filled),
-                            contentDescription = stringResource(R.string.main_task_menu)
-                        )
-                    }
-                }
-
-                IconButton(
-                    onClick = openFileManager
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_folder_filled),
-                        contentDescription = null
-                    )
-                }
-
-                TopBarRailItem(
-                    selected = inMultiplayerScreen,
-                    painter = painterResource(R.drawable.ic_group_filled),
-                    text = stringResource(R.string.terracotta),
-                    onClick = {
-                        if (!inMultiplayerScreen) toMultiplayerScreen()
-                    },
-                )
-
-                TopBarRailItem(
-                    selected = inDownloadScreen,
-                    painter = painterResource(R.drawable.ic_download_2_filled),
-                    text = stringResource(R.string.generic_download),
-                    onClick = {
-                        if (!inDownloadScreen) toDownloadScreen()
-                    },
-                )
-
-                TopBarRailItem(
-                    selected = inSettingsScreen,
-                    painter = painterResource(R.drawable.ic_settings_filled),
-                    text = stringResource(R.string.generic_setting),
-                    onClick = {
-                        if (!inSettingsScreen) toSettingsScreen()
-                    },
-                )
-            }
+            AstraRailItem(
+                selected = isTasksExpanded,
+                icon = R.drawable.ic_assignment_filled,
+                label = stringResource(R.string.main_task_menu),
+                onClick = onTasks,
+                showProgress = taskRunning
+            )
+            AstraRailItem(
+                selected = false,
+                icon = R.drawable.ic_folder_filled,
+                label = stringResource(R.string.main_files),
+                onClick = onFileManager
+            )
         }
     }
 }
 
 @Composable
-private fun TopBarRailItem(
-    selected: Boolean,
-    painter: Painter,
-    text: String,
+private fun AstraRailLogo(
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    onClick: () -> Unit = {},
-    textStyle: TextStyle = MaterialTheme.typography.labelMedium
 ) {
-    TextRailItem(
-        modifier = modifier,
-        onClick = onClick,
-        text = {
-            AnimatedVisibility(visible = selected) {
-                Row {
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = text,
-                        style = textStyle
+    val palette = MaterialTheme.colorScheme
+    val shape = MaterialTheme.shapes.medium
+    Box(
+        modifier = modifier
+            .size(44.dp)
+            .clip(shape)
+            .background(
+                Brush.linearGradient(
+                    listOf(
+                        palette.primary.copy(alpha = 0.24f),
+                        palette.tertiary.copy(alpha = 0.14f)
                     )
-                }
-            }
-        },
-        icon = {
-            Icon(
-                painter = painter,
-                contentDescription = text
+                )
             )
-        },
-        selected = selected,
-        selectedPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-        unSelectedPadding = PaddingValues(all = 8.dp),
+            .border(1.dp, palette.primary.copy(alpha = 0.28f), shape)
+            .clickable(role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Image(
+            painter = painterResource(R.drawable.ic_launcher_foreground),
+            contentDescription = BuildKeys.LAUNCHER_NAME,
+            modifier = Modifier.size(28.dp)
+        )
+    }
+}
+
+@Composable
+private fun AstraRailItem(
+    selected: Boolean,
+    icon: Int,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    showProgress: Boolean = false,
+) {
+    val palette = MaterialTheme.colorScheme
+    val tint by animateColorAsState(
+        targetValue = if (selected) palette.primary else palette.onSurfaceVariant.copy(alpha = 0.72f),
+        label = "AstraRailTint"
     )
+    val background by animateColorAsState(
+        targetValue = if (selected) palette.primary.copy(alpha = 0.16f) else Color.Transparent,
+        label = "AstraRailBackground"
+    )
+
+    Box(
+        modifier = modifier
+            .size(width = 54.dp, height = 40.dp)
+            .clip(MaterialTheme.shapes.medium)
+            .background(background)
+            .clickable(role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = label },
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            painter = painterResource(icon),
+            contentDescription = null,
+            modifier = Modifier.size(21.dp),
+            tint = tint
+        )
+
+        if (selected) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .width(3.dp)
+                    .height(18.dp)
+                    .clip(CircleShape)
+                    .background(palette.primary)
+            )
+        }
+
+        if (showProgress) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 9.dp, end = 12.dp)
+                    .size(6.dp)
+                    .clip(CircleShape)
+                    .background(palette.tertiary)
+            )
+        }
+    }
+}
+
+/**
+ * Compact header for nested screens. The home screen has no header at all: the rail plus
+ * the launch deck carry the whole identity of the entry screen.
+ */
+@Composable
+private fun <E : TitledNavKey> ScreenHeader(
+    mainScreenKey: E?,
+    onScreenBack: () -> Unit,
+    onHome: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
+    val parentRes = mainScreenKey?.title
+    val childRes = (mainScreenKey as? BackStackNavKey<*>)?.currentKey?.title
+
+    Row(
+        modifier = modifier.padding(horizontal = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(
+            onClick = {
+                backDispatcher?.onBackPressed() ?: onScreenBack()
+            }
+        ) {
+            Icon(
+                modifier = Modifier.size(22.dp),
+                painter = painterResource(R.drawable.ic_arrow_back),
+                contentDescription = stringResource(R.string.generic_back)
+            )
+        }
+        IconButton(onClick = onHome) {
+            Icon(
+                modifier = Modifier.size(19.dp),
+                painter = painterResource(R.drawable.ic_home_filled),
+                contentDescription = stringResource(R.string.generic_main_menu)
+            )
+        }
+
+        Crossfade(
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 6.dp),
+            targetState = parentRes to childRes
+        ) { (parent, child) ->
+            val titleText = when {
+                parent == null -> null
+                child != null -> androidText(parent, androidText(" - "), child)
+                else -> parent
+            }
+
+            if (titleText == null) {
+                Text(
+                    text = BuildKeys.LAUNCHER_IDENTIFIER,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1
+                )
+            } else {
+                AndroidStringText(
+                    text = titleText,
+                    style = MaterialTheme.typography.titleMedium,
+                    softWrap = false,
+                    maxLines = 1
+                )
+            }
+        }
+    }
 }
 
 @Composable

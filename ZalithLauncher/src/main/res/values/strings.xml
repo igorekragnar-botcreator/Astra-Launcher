@@ -172,6 +172,9 @@
     <string name="unpack_screen_jna">Enables Minecraft to directly call low-level OS functions</string>
     <!-- Main Menu -->
     <string name="main_launch_game">Launch</string>
+    <string name="main_files">Files</string>
+    <string name="home_quick_versions">Versions</string>
+    <string name="home_quick_accounts">Accounts</string>
     <string name="launch_check_mods">Checking mods</string>
     <string name="main_task_menu">Task Menu</string>
     <!--  Download  -->
@@ -1272,7 +1275,7 @@
     <string name="about_launcher_title">About Launcher</string>
     <string name="about_launcher_version">Launcher Version: %s</string>
     <string name="about_launcher_author_movtery_title">MovTery</string>
-    <string name="about_launcher_author_movtery_text">Author of %s</string>
+    <string name="about_launcher_author_movtery_text">Original author of ZalithLauncher 2, the project %s is based on</string>
     <string name="about_launcher_project_link">Project Link</string>
     <string name="about_sponsor">Sponsorship Support</string>
     <string name="about_acknowledgements_title">Acknowledgements</string>

@@ -55,13 +55,29 @@ data class CurrentGameInfo(
     }
 }
 
-private fun getInfoFile(gameHome: String) = File(gameHome, "zalith-game.cfg")
+private fun getInfoFile(gameHome: String) = File(gameHome, "astra-game.cfg")
+
+/**
+ * Astra used to store its state in `zalith-game.cfg`. Move the old file over the first time
+ * the new name is read so existing installations keep their selected version and favourites.
+ */
+private fun migrateLegacyInfoFile(gameHome: String) {
+    val current = getInfoFile(gameHome)
+    val legacy = File(gameHome, "zalith-game.cfg")
+    if (current.exists() || !legacy.exists()) return
+
+    if (!legacy.renameTo(current)) {
+        runCatching { legacy.copyTo(current, overwrite = true) }
+            .onFailure { e -> Logger.warning(TAG, "Failed to migrate the legacy game config", e) }
+    }
+}
 
 /**
  * 刷新并返回最新的游戏信息（自动处理旧配置迁移）
  * @param gameHome 信息所属的游戏目录
  */
 fun refreshCurrentInfo(gameHome: String): CurrentGameInfo {
+    migrateLegacyInfoFile(gameHome)
     val infoFile = getInfoFile(gameHome)
 
     return runCatching {

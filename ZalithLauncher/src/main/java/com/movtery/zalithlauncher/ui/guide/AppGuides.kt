@@ -128,12 +128,6 @@ private fun rememberMainGuides() = rememberGuide(holeRadius = 28.dp) {
             Text(stringResource(R.string.guide_main_version_list))
         }
     }
-    entry(GuideKeys.Main.Step.CardDrag) {
-        GuideCard {
-            Text(stringResource(R.string.guide_main_card_drag_title))
-            Text(stringResource(R.string.guide_main_card_drag_text))
-        }
-    }
     entry(GuideKeys.Main.Step.CardTip) {
         GuideCard {
             Text(stringResource(R.string.guide_main_card_tip_title))

@@ -3,6 +3,26 @@
 All notable changes to this fork are recorded here. Upstream history lives in
 the git lineage of the fork point.
 
+## Astra 1.5
+
+- New home screen: a permanent navigation rail (Home, Download, Multiplayer,
+  Settings, Task Menu, Files), a centred empty state, one version card and a
+  full-width Launch action, with quick tabs for Versions, Download and
+  Accounts. The old draggable card grid and its guide step are gone.
+- New adaptive launcher icon and store icon; the app theme is now
+  `AppTheme.Astra`.
+- Files is reachable from the rail, so instance files, logs and control
+  layouts no longer need a detour through settings.
+- Game state moved from `zalith-game.cfg` to `astra-game.cfg`, with a one-time
+  migration so existing installations keep their selected version and
+  favourites.
+- The game process now receives `ASTRA_VERSION_CODE`; `ZALITH_VERSION_CODE`
+  stays for mods and scripts that still read it.
+- Launcher update checks go straight to the GitHub feed; the Chinese mirror
+  fallback was removed.
+- About credits MovTery as the original author of ZalithLauncher 2.
+- Russian and English strings for the new navigation and home screen.
+
 ## Astra 1.0.0
 
 First Astra Launcher release, forked from Basalt 2.0.1:
