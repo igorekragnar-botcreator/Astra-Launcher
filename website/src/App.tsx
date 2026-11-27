@@ -17,7 +17,7 @@ const EASE = [0.16, 1, 0.3, 1] as const;
 
 const REPO = "https://github.com/igorekragnar-botcreator/Astra-Launcher";
 const RELEASES = `${REPO}/releases`;
-const VERSION = "1.0.0";
+const VERSION = "1.5";
 const TAG = `v${VERSION}`;
 const ASSET = (name: string) => `${RELEASES}/download/${TAG}/${name}`;
 const CLONE = `git clone ${REPO}.git`;
@@ -97,10 +97,11 @@ type Shot = { src: string; alt: string; label: string };
 const BASE = import.meta.env.BASE_URL;
 
 const SHOTS: Shot[] = [
-  { src: `${BASE}shots/home-263.png`, alt: "Home screen with 26.3 installed and an offline account", label: "Home" },
-  { src: `${BASE}shots/download-263.png`, alt: "Download list with 26.3 at the top of releases", label: "Downloads" },
-  { src: `${BASE}shots/offline-account.png`, alt: "Offline account created and selected", label: "Accounts" },
-  { src: `${BASE}shots/home-empty.png`, alt: "Empty home state pointing at the download action", label: "First run" },
+  {
+    src: `${BASE}shots/home.png`,
+    alt: "Astra 1.5 home screen with the navigation rail, empty state and Launch action",
+    label: "Home",
+  },
 ];
 
 const CHECKS = [
@@ -383,7 +384,7 @@ function App() {
             <div className="grid grid-cols-2 gap-px rounded-xl bg-white/[0.04] md:grid-cols-4 overflow-hidden">
               {[
                 { value: 26.3, label: "Current MC release", mono: true, raw: "26.3" },
-                { value: 5199, label: "Files per install", mono: true, suffix: "" },
+                { value: 5201, label: "Files per install", mono: true, suffix: "" },
                 { value: 37, label: "Second install (Rust)", mono: true, suffix: "s" },
                 { value: 25, label: "Java runtime bundled", mono: true, raw: "25" },
               ].map((stat) => (
@@ -457,10 +458,11 @@ function App() {
                 </div>
                 <h3 className="mt-5 text-[15px] font-medium">Rust launch engine</h3>
                 <p className="mt-2 text-sm leading-relaxed text-zinc-400">
-                  The same engine crate drives Android and Linux. It parses the
-                  official manifest, filters libraries by platform, applies
-                  memory and GC policy, and assembles every JVM and game
-                  argument. 18 tests run against the real 26.3 manifest.
+                  The same engine crate drives Android and the Linux CLI. It
+                  parses the official manifest, filters libraries by platform,
+                  applies memory and GC policy, and assembles every JVM and
+                  game argument. 47 tests, including a parity suite against the
+                  real manifest.
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2 font-mono text-[10px] text-zinc-600">
                   <span className="rounded bg-white/[0.04] px-2 py-0.5">serde</span>
@@ -506,7 +508,7 @@ function App() {
               {
                 icon: IconCpu,
                 title: "Java 25, MC 26.3",
-                body: "The Java 25 runtime ships inside the Android APK. Linux finds a suitable JDK on your system.",
+                body: "The Java 25 runtime ships inside the Android APK. The Linux CLI, built from source, uses a JDK already on your system.",
               },
             ].map((feature, index) => (
               <Reveal key={feature.title} delay={index * 0.06} className="h-full">
@@ -567,15 +569,15 @@ function App() {
         <section id="screens" className="mx-auto max-w-5xl px-5 py-16 md:py-28">
           <Reveal>
             <h2 className="text-2xl font-semibold tracking-[-0.02em] md:text-[1.75rem]">
-              Real screens, real installs
+              The new home screen
             </h2>
             <p className="mt-3 max-w-xl text-sm text-zinc-400">
-              Captured from the Android app running on an emulator. The dark
+              Captured from the 1.5 build on an Android 16 emulator. The dark
               theme is the theme.
             </p>
           </Reveal>
           <div className="mt-10 grid gap-4">
-            {/* Lead frame: full width, the home screen with 26.3 installed */}
+            {/* Lead frame: full width, the 1.5 home screen */}
             <Reveal>
               <button
                 type="button"
@@ -591,7 +593,7 @@ function App() {
                 <span className="flex items-center justify-between border-t border-white/[0.04] px-5 py-3.5">
                   <span className="text-sm text-zinc-200">{SHOTS[0].label}</span>
                   <span className="font-mono text-[10px] text-zinc-600">
-                    Android 15 · 2400×1080 · offline account
+                    Android 16 · 2400×1080 · first run
                   </span>
                 </span>
               </button>
@@ -612,7 +614,7 @@ function App() {
                     />
                     <span className="flex items-center justify-between border-t border-white/[0.04] px-4 py-3">
                       <span className="text-[13px] text-zinc-300">{shot.label}</span>
-                      <span className="font-mono text-[10px] text-zinc-600">26.3</span>
+                      <span className="font-mono text-[10px] text-zinc-600">26.1.1</span>
                     </span>
                   </button>
                 </Reveal>
@@ -634,7 +636,7 @@ function App() {
                 <IconDownload size={24} className="text-accent/60" />
                 <h3 className="mt-5 text-xl font-semibold">Android</h3>
                 <p className="mt-2 flex-1 text-sm leading-relaxed text-zinc-400">
-                  Universal APK with the Java 25 runtime inside. Sideload it:
+                  Two APKs, arm64-v8a and x86_64, with the Java 25 runtime inside. Sideload one:
                   allow install-from-unknown-sources, done.
                 </p>
                 <div className="mt-6 flex flex-wrap gap-3">
@@ -758,7 +760,7 @@ function App() {
               <span className="text-sm font-semibold">Astra</span>
             </div>
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-zinc-500">
-              A Minecraft Java Edition launcher for Android and Linux. Fork of
+              A Minecraft Java Edition launcher for Android, with a Linux CLI in the same source tree. Fork of
               ZalithLauncher 2, GPL-3. Built by Leonxlnx.
             </p>
           </div>
@@ -819,7 +821,7 @@ function App() {
         <div className="border-t border-white/[0.04]">
           <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2 px-5 py-5 font-mono text-[11px] text-zinc-700">
             <span>Not affiliated with Mojang Studios or Microsoft.</span>
-            <span>v1.0.0 · 2026</span>
+            <span>v1.5 · 2026</span>
           </div>
         </div>
       </footer>
